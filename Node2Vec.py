@@ -1,6 +1,7 @@
 import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.callbacks import CallbackAny2Vec
+import concurrent.futures
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -64,16 +65,31 @@ class Node2Vec:
             walk.append(next_node)
         return walk
 
+    def walk_worker(self):
+        local_walks = []
+        for start_node in self.graph.nodes():
+            if len(list(self.graph.neighbors(start_node))) > 0:
+                print(start_node)
+                walk = self.node2vec_walk(start_node)
+                local_walks.append(walk)
+        return local_walks
+
     def learn_features(self, workers, epochs=2):
         # iterate through all the nodes, each generate r walks
         walks = []
         print('Random walk to get training data...')
-        for _ in range(self.walks_per_node):
-            for start_node in self.graph.nodes():
-                if len(list(self.graph.neighbors(start_node))) > 0:
-                    # print(start_node)
-                    walk = self.node2vec_walk(start_node)
-                    walks.append(walk)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+            pool = [executor.submit(self.walk_worker)
+                    for _ in range(self.walks_per_node)]
+
+            for f in concurrent.futures.as_completed(pool):
+                walks += f.result()
+        # for _ in range(self.walks_per_node):
+        #     for start_node in self.graph.nodes():
+        #         if len(list(self.graph.neighbors(start_node))) > 0:
+        #             # print(start_node)
+        #             walk = self.node2vec_walk(start_node)
+        #             walks.append(walk)
         np.random.shuffle(walks)
 
         callback = SkipGramCallback()
