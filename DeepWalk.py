@@ -1,5 +1,6 @@
 import networkx as nx
 from gensim.models import Word2Vec
+import concurrent.futures
 from gensim.models.callbacks import CallbackAny2Vec
 import random
 
@@ -32,18 +33,31 @@ class DeepWalk:
         self.walkLength = walkLength
         self.epochs = epochs
 
+    def deep_walk(self, G, vertices) -> list:
+        localCorpus = []
+        for vertex in vertices:
+            # generate a random walk starting at this node
+            walk = self.random_walk(G, vertex)
+            localCorpus.append(walk)
+        print("Walk finished")
+        return localCorpus
+
     def generate_corpus(self, G: nx.Graph, seed=42) -> list:
         corpus = []
-        print("Generating corpus...", end='')
+        print("Generating corpus...")
         random.seed(seed)
-        for i in range(self.walksPerVertex):
-            vertices = list(G.nodes())
-            random.shuffle(vertices)
-            for vertex in vertices:
-                # generate a random walk starting at this node
-                walk = self.random_walk(G, vertex)
-                corpus.append(walk)
-        print("generated.")
+
+        vertices = list(G.nodes())
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            pool = [executor.submit(self.deep_walk, G, vertices)
+                       for _ in range(self.walksPerVertex)]
+
+            for f in concurrent.futures.as_completed(pool):
+                corpus += f.result()
+        print("Generated.")
+        # NOTE: maybe with random processing this is not needed
+        random.shuffle(corpus)
         return corpus
 
     def random_walk(self, G: nx.Graph, vertex: int) -> list:
