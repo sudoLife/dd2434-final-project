@@ -34,9 +34,9 @@ class DeepWalk:
         self.walkLength = walkLength
         self.epochs = epochs
 
-    def deep_walk(self, vertices) -> list:
+    def deep_walk(self) -> list:
         localCorpus = []
-        for vertex in vertices:
+        for vertex in self.G.nodes():
             # generate a random walk starting at this node
             walk = self.random_walk(vertex)
             localCorpus.append(walk)
@@ -48,10 +48,8 @@ class DeepWalk:
         print("Generating corpus...")
         random.seed(seed)
 
-        vertices = list(self.G.nodes())
-
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            pool = [executor.submit(self.deep_walk, vertices)
+            pool = [executor.submit(self.deep_walk)
                     for _ in range(self.walksPerVertex)]
 
             for f in concurrent.futures.as_completed(pool):
