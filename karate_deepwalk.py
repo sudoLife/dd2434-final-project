@@ -24,16 +24,12 @@ def main():
         for node in community:
             node_to_community[node] = i
 
-    window = 8
     embedding = 10
-    wpw = 80
-    length = 20
-    epochs = 1
 
-    deepwalk = DeepWalk(window, embedding, wpw, length, epochs)
-    corpus = deepwalk.generate_corpus(G)
+    deepwalk = DeepWalk(G, window=8, embedding=embedding,
+                        walksPerVertex=80, walkLength=20, epochs=1)
+    corpus = deepwalk.generate_corpus()
     model = deepwalk.train(corpus, workers=1)
-    print(model.wv['0'])
 
     embedded = np.zeros((len(G), embedding))
 
@@ -42,8 +38,6 @@ def main():
     for node in G.nodes():
         embedded[node] = model.wv[str(node)]
 
-    # reducedEmbedding = TSNE(n_components=2, init='pca',
-    #                         random_state=42).fit_transform(embedded)
     reducedEmbedding = PCA(n_components=2).fit_transform(embedded)
 
     ax = plt.subplot(1, 2, 1)

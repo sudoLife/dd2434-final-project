@@ -26,32 +26,33 @@ class SkipGramCallback(CallbackAny2Vec):
 
 
 class DeepWalk:
-    def __init__(self, window, embedding, walksPerVertex, walkLength, epochs) -> None:
+    def __init__(self, G: nx.Graph, window: int, embedding: int, walksPerVertex: int, walkLength: int, epochs: int) -> None:
+        self.G = G
         self.window = window
         self.embeddingSize = embedding
         self.walksPerVertex = walksPerVertex
         self.walkLength = walkLength
         self.epochs = epochs
 
-    def deep_walk(self, G, vertices) -> list:
+    def deep_walk(self, vertices) -> list:
         localCorpus = []
         for vertex in vertices:
             # generate a random walk starting at this node
-            walk = self.random_walk(G, vertex)
+            walk = self.random_walk(vertex)
             localCorpus.append(walk)
         print("Walk finished")
         return localCorpus
 
-    def generate_corpus(self, G: nx.Graph, seed=42) -> list:
+    def generate_corpus(self, seed=42) -> list:
         corpus = []
         print("Generating corpus...")
         random.seed(seed)
 
-        vertices = list(G.nodes())
+        vertices = list(self.G.nodes())
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            pool = [executor.submit(self.deep_walk, G, vertices)
-                       for _ in range(self.walksPerVertex)]
+            pool = [executor.submit(self.deep_walk, vertices)
+                    for _ in range(self.walksPerVertex)]
 
             for f in concurrent.futures.as_completed(pool):
                 corpus += f.result()
@@ -60,10 +61,10 @@ class DeepWalk:
         random.shuffle(corpus)
         return corpus
 
-    def random_walk(self, G: nx.Graph, vertex: int) -> list:
+    def random_walk(self, vertex: int) -> list:
         walk = [str(vertex)]
         for step in range(self.walkLength):
-            neighbors = list(G.neighbors(vertex))
+            neighbors = list(self.G.neighbors(vertex))
             if len(neighbors) == 0:
                 break
             vertex = random.choice(neighbors)
