@@ -11,9 +11,11 @@ def read_graph(input_edgelist, weighted=False, directed=False):
     Reads the input network in networkx.
     """
     if weighted:
-        G = nx.read_edgelist(input_edgelist, nodetype=int, data=(('weight', float),), create_using=nx.DiGraph())
+        G = nx.read_edgelist(input_edgelist, nodetype=int, data=(
+            ('weight', float),), create_using=nx.DiGraph())
     else:
-        G = nx.read_edgelist(input_edgelist, nodetype=int, create_using=nx.DiGraph())
+        G = nx.read_edgelist(input_edgelist, nodetype=int,
+                             create_using=nx.DiGraph())
         for edge in G.edges():
             G[edge[0]][edge[1]]['weight'] = 1
     if not directed:
@@ -22,18 +24,16 @@ def read_graph(input_edgelist, weighted=False, directed=False):
     return G
 
 
-input_file = 'data/karate.edgelist'
-output_file = 'embedding_result/karate.emb'
+output_file = 'models/karate_node2vec.kv'
 
-# graph = nx.karate_club_graph()
-graph = read_graph(input_file)
+graph = nx.karate_club_graph()
 
 # Default parameters:
 # node2vec = Node2Vec(graph, dimensions=128, walks_per_node=80, length=40, context_size=10, p=4, q=0.25)
-node2vec = Node2Vec(graph, dimensions=10, walks_per_node=80, length=20, context_size=8, p=4, q=0.25)
+node2vec = Node2Vec(graph, dimensions=10, walks_per_node=80,
+                    length=20, context_size=8, p=4, q=0.25)
 n2v = node2vec.learn_features(workers=32, epochs=2)
-n2v.save_word2vec_format(output_file)
-# print(n2v.vectors)
+n2v.save(output_file)
 
 """
 Order the embedding vectors by their index
@@ -51,7 +51,8 @@ sorted_index_key_pairs = sorted(index_key_pairs, key=lambda x: x[0])
 embedding_vectors = n2v.vectors
 
 # Create a new list of the word embedding vectors, ordered by the index
-ordered_embedding_vectors = [embedding_vectors[index] for key, index in sorted_index_key_pairs]
+ordered_embedding_vectors = [embedding_vectors[index]
+                             for key, index in sorted_index_key_pairs]
 
 """
 Visualize the result using PCA
