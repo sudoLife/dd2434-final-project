@@ -5,10 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    matrix = scipy.io.mmread('datasets/soc-karate/soc-karate.mtx')
-
-    # Create a graph object using networkx
-    G = nx.from_scipy_sparse_array(matrix)
+    G = nx.karate_club_graph()
 
     window = 2
     embedding = 2
