@@ -3,9 +3,9 @@ import numpy as np
 import random
 from sklearn.metrics import roc_auc_score
 
-from node2vec import Node2Vec
+from Node2Vec import Node2Vec
 
-input_file = 'tencent/train_edges.npy'
+input_file = 'datasets/tencent/train_edges.npy'
 output_file = 'embedding_result/tencent.emb'
 
 random.seed(616)
@@ -20,13 +20,14 @@ print("Graph created")
 print("Starts training")
 # Default parameters:
 # node2vec = Node2Vec(graph, dimensions=128, walks_per_node=80, length=40, context_size=10, p=4, q=0.25)
-node2vec = Node2Vec(G, dimensions=128, walks_per_node=5, length=10, context_size=10, p=4, q=1)
+node2vec = Node2Vec(G, dimensions=128, walks_per_node=5,
+                    length=10, context_size=10, p=4, q=1)
 n2v = node2vec.learn_features(workers=4, epochs=2)
 n2v.save_word2vec_format(output_file)
 
 # Testing calculate similarity score for Tencent dataset
-pos_test = np.load('tencent/test_edges.npy')
-neg_test = np.load('tencent/test_edges_false.npy')
+pos_test = np.load('datasets/tencent/test_edges.npy')
+neg_test = np.load('datasets/tencent/test_edges_false.npy')
 
 y_true = [True] * pos_test.shape[0] + [False] * neg_test.shape[0]
 X = np.vstack([pos_test, neg_test])

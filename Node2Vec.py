@@ -31,58 +31,52 @@ class Node2Vec:
         self.p = p
         self.q = q
 
-    def transition_prob(self, graph, p, q, v, t):
-        G = graph
+    def transition_prob(self, v, t):
         probs = list()
-        v_neighbors = list(G.neighbors(v))
+        v_neighbors = list(self.graph.neighbors(v))
         for x in v_neighbors:
             if t == x:
-                prob = G[v][x].get('weight', 1) * (1 / p)
-            elif x in G.neighbors(t):
-                prob = G[v][x].get('weight', 1)
+                prob = self.graph[v][x].get('weight', 1) * (1 / self.p)
+            elif x in self.graph.neighbors(t):
+                prob = self.graph[v][x].get('weight', 1)
             else:
-                prob = G[v][x].get('weight', 1) * (1 / q)
+                prob = self.graph[v][x].get('weight', 1) * (1 / self.q)
             probs.append(prob)
         probs = probs / np.sum(probs)
         probs = np.array(probs)
         return probs
 
-    def node2vec_walk(self, graph, start_node, length, p, q):
-        u = start_node
-        G = graph
-        l = length
-
-        walk = [u]
+    def node2vec_walk(self, start_node):
+        walk = [start_node]
         # generate a list of neighbors
-        neighbors = list(G.neighbors(start_node))
+        neighbors = list(self.graph.neighbors(start_node))
         # we start with start_node, uniform-randomly choose one neighbour to continue (the 2nd step of the walk)
         second_node = np.random.choice(neighbors)
         walk.append(second_node)
         # after we have the first 2 steps of walk we can start the iteration
 
-        for i in range(1, l - 1):
+        for i in range(1, self.length - 1):
             t = walk[i - 1]
             v = walk[i]
-            probs = self.transition_prob(G, p, q, v, t)
-            neighbors = list(G.neighbors(v))
+            probs = self.transition_prob(v, t)
+            neighbors = list(self.graph.neighbors(v))
             next_node = np.random.choice(neighbors, p=probs)
             walk.append(next_node)
         return walk
 
     def learn_features(self, workers, epochs=2):
         # iterate through all the nodes, each generate r walks
-        G = self.graph
         walks = []
         print('Random walk to get training data...')
-        for i in range(self.walks_per_node):
-            for start_node in G.nodes():
-                if len(list(G.neighbors(start_node))) > 0:
+        for _ in range(self.walks_per_node):
+            for start_node in self.graph.nodes():
+                if len(list(self.graph.neighbors(start_node))) > 0:
                     # print(start_node)
-                    walk = self.node2vec_walk(G, start_node, self.length, self.p, self.q)
+                    walk = self.node2vec_walk(start_node)
                     walks.append(walk)
         np.random.shuffle(walks)
 
         callback = SkipGramCallback()
         model = Word2Vec(sentences=walks, window=self.context_size, vector_size=self.dimensions, workers=workers,
-                         epochs=epochs, callbacks=[callback])
+                         epochs=epochs, callbacks=[callback], sg=0, negative=5)
         return model.wv

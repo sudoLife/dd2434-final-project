@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
-from node2vec import Node2Vec
+from Node2Vec import Node2Vec
 
 
 def read_graph(input_edgelist, weighted=False, directed=False):
