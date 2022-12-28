@@ -24,24 +24,24 @@ class SkipGramCallback(CallbackAny2Vec):
 
 
 class DeepWalk:
-    def __init__(self, G: nx.Graph, window: int, embedding: int, walksPerVertex: int, walkLength: int, epochs: int, seed=42) -> None:
+    def __init__(self, G: nx.Graph, window: int, embedding: int, walks_per_vertex: int, walk_length: int, epochs: int, seed=42) -> None:
         self.G = G
         self.window = window
-        self.embeddingSize = embedding
-        self.walksPerVertex = walksPerVertex
-        self.walkLength = walkLength
+        self.embedding_size = embedding
+        self.walks_per_vertex = walks_per_vertex
+        self.walk_length = walk_length
         self.epochs = epochs
         # ensuring the seed is local and the same everywhere
         self.rng = np.random.default_rng(seed)
 
     def deep_walk(self) -> list:
-        localCorpus = []
+        local_corpus = []
         for vertex in self.G.nodes():
             # generate a random walk starting at this node
             walk = self.random_walk(vertex)
-            localCorpus.append(walk)
+            local_corpus.append(walk)
         print("Walk finished")
-        return localCorpus
+        return local_corpus
 
     def generate_corpus(self) -> list:
         corpus = []
@@ -49,7 +49,7 @@ class DeepWalk:
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             pool = [executor.submit(self.deep_walk)
-                    for _ in range(self.walksPerVertex)]
+                    for _ in range(self.walks_per_vertex)]
 
             for f in concurrent.futures.as_completed(pool):
                 corpus += f.result()
@@ -59,7 +59,7 @@ class DeepWalk:
 
     def random_walk(self, vertex: int) -> list:
         walk = [str(vertex)]
-        for step in range(self.walkLength):
+        for _ in range(self.walk_length):
             neighbors = list(self.G.neighbors(vertex))
             if len(neighbors) == 0:
                 break
@@ -74,7 +74,7 @@ class DeepWalk:
         callback = SkipGramCallback()
         model = Word2Vec(
             corpus,
-            vector_size=self.embeddingSize,
+            vector_size=self.embedding_size,
             sg=1,  # skipgram
             hs=1,  # hierarchical softmax
             min_count=0,

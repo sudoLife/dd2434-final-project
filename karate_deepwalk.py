@@ -2,7 +2,6 @@ from DeepWalk import DeepWalk
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
 
@@ -27,7 +26,7 @@ def main():
     embedding = 10
 
     deepwalk = DeepWalk(G, window=8, embedding=embedding,
-                        walksPerVertex=80, walkLength=20, epochs=1)
+                        walks_per_vertex=80, walk_length=20, epochs=1)
     corpus = deepwalk.generate_corpus()
     model = deepwalk.train(corpus, workers=1)
 
@@ -38,7 +37,7 @@ def main():
     for node in G.nodes():
         embedded[node] = model.wv[str(node)]
 
-    reducedEmbedding = PCA(n_components=2).fit_transform(embedded)
+    reduced_embedding = PCA(n_components=2).fit_transform(embedded)
 
     ax = plt.subplot(1, 2, 1)
     pos = nx.spring_layout(G, seed=14)
@@ -46,11 +45,11 @@ def main():
             node_to_community[n] for n in G.nodes])
 
     ax = plt.subplot(1, 2, 2)
-    ax.scatter(reducedEmbedding[:, 0], reducedEmbedding[:, 1], c=colors)
+    ax.scatter(reduced_embedding[:, 0], reduced_embedding[:, 1], c=colors)
 
     for node in G.nodes():
         ax.annotate(
-            node, (reducedEmbedding[node, 0], reducedEmbedding[node, 1]))
+            node, (reduced_embedding[node, 0], reduced_embedding[node, 1]))
 
     plt.show()
 
