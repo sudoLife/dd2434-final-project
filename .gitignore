@@ -2,3 +2,4 @@ datasets/
 models/
 temp/
 __pycache__/
+venv/
