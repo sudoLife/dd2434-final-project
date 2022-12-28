@@ -1,10 +1,8 @@
 import networkx as nx
 from gensim.models import Word2Vec
+import numpy as np
 import concurrent.futures
 from gensim.models.callbacks import CallbackAny2Vec
-import random
-
-# This is a very generic callback to see the progress of the training.
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -26,13 +24,15 @@ class SkipGramCallback(CallbackAny2Vec):
 
 
 class DeepWalk:
-    def __init__(self, G: nx.Graph, window: int, embedding: int, walksPerVertex: int, walkLength: int, epochs: int) -> None:
+    def __init__(self, G: nx.Graph, window: int, embedding: int, walksPerVertex: int, walkLength: int, epochs: int, seed=42) -> None:
         self.G = G
         self.window = window
         self.embeddingSize = embedding
         self.walksPerVertex = walksPerVertex
         self.walkLength = walkLength
         self.epochs = epochs
+        # ensuring the seed is local and the same everywhere
+        self.rng = np.random.default_rng(seed)
 
     def deep_walk(self) -> list:
         localCorpus = []
@@ -43,10 +43,9 @@ class DeepWalk:
         print("Walk finished")
         return localCorpus
 
-    def generate_corpus(self, seed=42) -> list:
+    def generate_corpus(self) -> list:
         corpus = []
         print("Generating corpus...")
-        random.seed(seed)
 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             pool = [executor.submit(self.deep_walk)
@@ -55,8 +54,7 @@ class DeepWalk:
             for f in concurrent.futures.as_completed(pool):
                 corpus += f.result()
         print("Generated.")
-        # NOTE: maybe with random processing this is not needed
-        random.shuffle(corpus)
+        self.rng.shuffle(corpus)
         return corpus
 
     def random_walk(self, vertex: int) -> list:
@@ -65,7 +63,10 @@ class DeepWalk:
             neighbors = list(self.G.neighbors(vertex))
             if len(neighbors) == 0:
                 break
-            vertex = random.choice(neighbors)
+            weights = np.array([self.G[vertex][neighbor].get('weight', 1.0)
+                                for neighbor in neighbors], dtype=np.float32)
+            weights /= np.sum(weights)
+            vertex = self.rng.choice(neighbors, p=weights)
             walk.append(str(vertex))
         return walk
 
