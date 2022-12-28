@@ -2,6 +2,7 @@ import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.callbacks import CallbackAny2Vec
 import concurrent.futures
+import pickle
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -33,18 +34,17 @@ class Node2Vec:
         self.q = q
 
     def transition_prob(self, v, t):
-        probs = list()
         v_neighbors = list(self.graph.neighbors(v))
-        for x in v_neighbors:
+        probs = np.zeros(len(v_neighbors))
+        for i, x in enumerate(v_neighbors):
+            prob = self.graph[v][x].get(
+                'weight', 1) / (self.p if t == x else self.q)
             if t == x:
-                prob = self.graph[v][x].get('weight', 1) * (1 / self.p)
-            elif x in self.graph.neighbors(t):
-                prob = self.graph[v][x].get('weight', 1)
+                prob *= (1 / self.p)
             else:
-                prob = self.graph[v][x].get('weight', 1) * (1 / self.q)
-            probs.append(prob)
-        probs = probs / np.sum(probs)
-        probs = np.array(probs)
+                prob *= (1 / self.q)
+            probs[i] = prob
+        probs /= np.sum(probs)
         return probs
 
     def node2vec_walk(self, start_node):
@@ -69,9 +69,9 @@ class Node2Vec:
         local_walks = []
         for start_node in self.graph.nodes():
             if len(list(self.graph.neighbors(start_node))) > 0:
-                print(start_node)
                 walk = self.node2vec_walk(start_node)
                 local_walks.append(walk)
+        print("Worker finished")
         return local_walks
 
     def learn_features(self, workers, epochs=2):
@@ -84,13 +84,12 @@ class Node2Vec:
 
             for f in concurrent.futures.as_completed(pool):
                 walks += f.result()
-        # for _ in range(self.walks_per_node):
-        #     for start_node in self.graph.nodes():
-        #         if len(list(self.graph.neighbors(start_node))) > 0:
-        #             # print(start_node)
-        #             walk = self.node2vec_walk(start_node)
-        #             walks.append(walk)
+        with open('node2vec_sentences_unshuffled.pkl', 'wb') as f:
+            pickle.dump(walks, f)
         np.random.shuffle(walks)
+        print("dumping to file")
+        with open('node2vec_sentences.pkl', 'wb') as f:
+            pickle.dump(walks, f)
 
         callback = SkipGramCallback()
         model = Word2Vec(sentences=walks, window=self.context_size, vector_size=self.dimensions, workers=workers,
