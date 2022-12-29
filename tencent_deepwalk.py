@@ -7,7 +7,7 @@ from DeepWalk import DeepWalk
 
 nodeNum = 169209
 cpuCount = 16
-savePath = 'models/tencent.kv'
+save_path = 'models/tencent.kv'
 load_saved = True
 
 edges = np.load('datasets/tencent/train_edges.npy')
@@ -17,14 +17,14 @@ for i in range(nodeNum):
 G.add_edges_from(edges)
 
 if load_saved:
-    wv = KeyedVectors.load(savePath)
+    wv = KeyedVectors.load(save_path)
 else:
-    deepwalk = DeepWalk(window=10, embedding=128,
-                        walksPerVertex=10, walkLength=50, epochs=2)
+    deepwalk = DeepWalk(window=10, embedding_size=128,
+                        walks_per_vertex=10, walk_length=50)
     corpus = deepwalk.generate_corpus(G)
-    w2v = deepwalk.train(corpus, workers=cpuCount)
+    w2v = deepwalk.train(corpus, epochs=2)
     wv = w2v.wv
-    wv.save(savePath)
+    wv.save(save_path)
 
 pos_test = np.load('datasets/tencent/test_edges.npy')
 neg_test = np.load(

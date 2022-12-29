@@ -20,8 +20,8 @@ print("Graph created")
 print("Starts training")
 # Default parameters:
 # node2vec = Node2Vec(graph, dimensions=128, walks_per_node=80, length=40, context_size=10, p=4, q=0.25)
-node2vec = Node2Vec(G, dimensions=128, walks_per_node=5,
-                    length=10, context_size=10, p=4, q=1)
+node2vec = Node2Vec(G, embedding_size=128, walks_per_vertex=5,
+                    walk_length=10, window=10, p=4, q=1)
 n2v = node2vec.learn_features(workers=16, epochs=2)
 n2v.save(output_file)
 

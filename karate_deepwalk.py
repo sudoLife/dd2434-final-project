@@ -11,10 +11,10 @@ def main():
 
     embedding = 10
 
-    deepwalk = DeepWalk(G, window=8, embedding=embedding,
-                        walks_per_vertex=80, walk_length=20, epochs=1)
+    deepwalk = DeepWalk(G, window=8, embedding_size=embedding,
+                        walks_per_vertex=80, walk_length=20)
     corpus = deepwalk.generate_corpus()
-    model = deepwalk.train(corpus, workers=1)
+    model = deepwalk.train(corpus, workers=1, epochs=1)
 
     embedded = np.zeros((len(G), embedding))
 

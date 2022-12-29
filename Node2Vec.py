@@ -2,7 +2,7 @@ import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.callbacks import CallbackAny2Vec
 import concurrent.futures
-import pickle
+from multiprocessing import cpu_count
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -24,14 +24,15 @@ class SkipGramCallback(CallbackAny2Vec):
 
 
 class Node2Vec:
-    def __init__(self, graph, dimensions=128, walks_per_node=80, length=40, context_size=10, p=4, q=0.25):
+    def __init__(self, graph, embedding_size=128, walks_per_vertex=80, walk_length=40, window=10, p=4, q=0.25, seed=42):
         self.graph = graph
-        self.dimensions = dimensions
-        self.length = length
-        self.walks_per_node = walks_per_node
-        self.context_size = context_size
+        self.dimensions = embedding_size
+        self.length = walk_length
+        self.walks_per_node = walks_per_vertex
+        self.context_size = window
         self.p = p
         self.q = q
+        self.rng = np.random.default_rng(seed=seed)
 
     def transition_prob(self, v, t):
         v_neighbors = list(self.graph.neighbors(v))
@@ -52,7 +53,7 @@ class Node2Vec:
         # generate a list of neighbors
         neighbors = list(self.graph.neighbors(start_node))
         # we start with start_node, uniform-randomly choose one neighbour to continue (the 2nd step of the walk)
-        second_node = np.random.choice(neighbors)
+        second_node = self.rng.choice(neighbors)
         walk.append(second_node)
         # after we have the first 2 steps of walk we can start the iteration
 
@@ -61,7 +62,7 @@ class Node2Vec:
             v = walk[i]
             probs = self.transition_prob(v, t)
             neighbors = list(self.graph.neighbors(v))
-            next_node = np.random.choice(neighbors, p=probs)
+            next_node = self.rng.choice(neighbors, p=probs)
             walk.append(next_node)
         return walk
 
@@ -74,24 +75,24 @@ class Node2Vec:
         print("Worker finished")
         return local_walks
 
-    def learn_features(self, workers, epochs=2):
-        # iterate through all the nodes, each generate r walks
-        walks = []
+    def generate_corpus(self):
+        corpus = []
         print('Random walk to get training data...')
-        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+        # default number of workers equals CPU count
+        with concurrent.futures.ProcessPoolExecutor() as executor:
             pool = [executor.submit(self.walk_worker)
                     for _ in range(self.walks_per_node)]
 
             for f in concurrent.futures.as_completed(pool):
-                walks += f.result()
-        with open('node2vec_sentences_unshuffled.pkl', 'wb') as f:
-            pickle.dump(walks, f)
-        np.random.shuffle(walks)
-        print("dumping to file")
-        with open('node2vec_sentences.pkl', 'wb') as f:
-            pickle.dump(walks, f)
+                corpus += f.result()
+        self.rng.shuffle(corpus)
+        return corpus
 
+    def train(self, corpus=None, workers=cpu_count(), epochs=2):
+        # iterate through all the nodes, each generate r walks
+        if corpus == None:
+            corpus = self.generate_corpus()
         callback = SkipGramCallback()
-        model = Word2Vec(sentences=walks, window=self.context_size, vector_size=self.dimensions, workers=workers,
+        model = Word2Vec(corpus, window=self.context_size, vector_size=self.dimensions, workers=workers,
                          epochs=epochs, callbacks=[callback], sg=0, negative=5)
         return model.wv

@@ -3,6 +3,7 @@ from gensim.models import Word2Vec
 import numpy as np
 import concurrent.futures
 from gensim.models.callbacks import CallbackAny2Vec
+from multiprocessing import cpu_count
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -24,13 +25,12 @@ class SkipGramCallback(CallbackAny2Vec):
 
 
 class DeepWalk:
-    def __init__(self, G: nx.Graph, window: int, embedding: int, walks_per_vertex: int, walk_length: int, epochs: int, seed=42) -> None:
+    def __init__(self, G: nx.Graph, window: int, embedding_size: int, walks_per_vertex: int, walk_length: int, seed=42) -> None:
         self.G = G
         self.window = window
-        self.embedding_size = embedding
+        self.embedding_size = embedding_size
         self.walks_per_vertex = walks_per_vertex
         self.walk_length = walk_length
-        self.epochs = epochs
         # ensuring the seed is local and the same everywhere
         self.rng = np.random.default_rng(seed)
 
@@ -70,7 +70,10 @@ class DeepWalk:
             walk.append(str(vertex))
         return walk
 
-    def train(self, corpus, workers=4) -> Word2Vec:
+    def train(self, corpus=None, workers=cpu_count(), epochs=2) -> Word2Vec:
+        if corpus == None:
+            corpus = self.generate_corpus()
+
         callback = SkipGramCallback()
         model = Word2Vec(
             corpus,
@@ -80,7 +83,7 @@ class DeepWalk:
             min_count=0,
             workers=workers,  # for parallel execution
             window=self.window,
-            epochs=self.epochs,
+            epochs=epochs,
             callbacks=[callback]
         )
 

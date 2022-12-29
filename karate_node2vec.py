@@ -32,9 +32,9 @@ def main():
 
     # Default parameters:
     # node2vec = Node2Vec(graph, dimensions=128, walks_per_node=80, length=40, context_size=10, p=4, q=0.25)
-    node2vec = Node2Vec(graph, dimensions=10, walks_per_node=80,
-                        length=20, context_size=8, p=4, q=0.25)
-    n2v = node2vec.learn_features(workers=32, epochs=2)
+    node2vec = Node2Vec(graph, embedding_size=10, walks_per_vertex=80,
+                        walk_length=20, window=8, p=4, q=0.25)
+    n2v = node2vec.train(epochs=1)
     n2v.save(output_file)
 
     """
