@@ -14,3 +14,4 @@ To keep it clean, the following rules apply:
 
 - [Tensent & Cora](https://github.com/feixyz10/network-representation-learning)
 - [Karate](https://networkrepository.com/soc-karate.php), but we need to find another one with labels
+- [BlogCatalog](http://datasets.syr.edu/datasets/BlogCatalog.html), with group labels
