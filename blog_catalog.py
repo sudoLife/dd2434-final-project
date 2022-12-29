@@ -30,7 +30,7 @@ def main():
 
     deepwalk_corpus = deepwalk.generate_corpus()
     with open('deepwalk_corpus.pkl', 'wb') as f:
-        pickle.dump(deepwalk_corpus)
+        pickle.dump(deepwalk_corpus, f)
     print("Deepwalk corpus generated & dumped!")
 
     # NOTE: don't forget to delete this if actually training
@@ -38,7 +38,7 @@ def main():
 
     node2vec_corpus = node2vec.generate_corpus()
     with open('node2vec_corpus.pkl', 'wb') as f:
-        pickle.dump(node2vec_corpus)
+        pickle.dump(node2vec_corpus, f)
     print("Node2Vec corpus generated & dumped!")
     # deepwalk_model = deepwalk.train(corpus=deepwalk_corpus, epochs=4)
     # deepwalk_model.wv.save(deepwalk_output_path)
