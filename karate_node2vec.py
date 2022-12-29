@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
 from Node2Vec import Node2Vec
+from color_communities import color_communities
 
 
 def read_graph(input_edgelist, weighted=False, directed=False):
@@ -54,6 +55,8 @@ embedding_vectors = n2v.vectors
 ordered_embedding_vectors = [embedding_vectors[index]
                              for key, index in sorted_index_key_pairs]
 
+colors = color_communities(graph)
+
 """
 Visualize the result using PCA
 """
@@ -67,18 +70,24 @@ pca.fit(X)
 # Transform the data using the PCA model
 X_pca = pca.transform(X)
 
+
+ax1 = plt.subplot(1, 2, 1)
+pos = nx.spring_layout(graph, seed=14)
+nx.draw(graph, pos, with_labels=True, node_color=colors)
+
+ax2 = plt.subplot(1, 2, 2)
 # Create a scatter plot of the first two principal components
-plt.scatter(X_pca[:, 0], X_pca[:, 1])
+ax2.scatter(X_pca[:, 0], X_pca[:, 1], c=colors)
 
 # Add labels to each point
 labels = np.arange(1, 35)
 for i, label in enumerate(labels):
-    plt.text(X_pca[i, 0], X_pca[i, 1], label, fontsize=8)
+    ax2.text(X_pca[i, 0], X_pca[i, 1], label, fontsize=8)
 
 # Add labels and title
-plt.xlabel('Principal Component 1')
-plt.ylabel('Principal Component 2')
-plt.title('PCA Result')
+ax2.set_xlabel('Principal Component 1')
+ax2.set_ylabel('Principal Component 2')
+ax2.set_title('PCA Result')
 
 # Show the plot
 plt.show()
