@@ -1,49 +1,15 @@
-import pandas as pd
 import networkx as nx
 import numpy as np
-from matplotlib import pyplot as plt
 from sklearn import metrics
 from sklearn.model_selection import KFold
 
 from max_vote import max_vote
+from utils import load_data_into_graph
 
 
 def main():
-    """
-    Load the data into graph
-    """
-    # Load the CSV file into a pandas DataFrame
-    df = pd.read_csv('datasets/BlogCatalog-dataset/data/edges.csv', header=None, names=['src', 'dst'])
-
-    # Create a graph from the DataFrame
-    # 10312 nodes, 333983 edges
-    G = nx.from_pandas_edgelist(df, source='src', target='dst', create_using=nx.Graph())
-    node_count = G.number_of_nodes()
-
-    # Read the groups of each node
-    group_edges = pd.read_csv('datasets/BlogCatalog-dataset/data/group-edges.csv', sep=',', names=['Node', 'Group'])
-
-    # All labels
-    labels = pd.read_csv('datasets/BlogCatalog-dataset/data/groups.csv', header=None, names=['Group'])
-    group_count = len(labels)
-
-    # Vectorize labels as array of shape (10312 , 39)
-    node_labels = np.zeros((G.number_of_nodes(), group_count), dtype=int)
-    for index, row in group_edges.iterrows():
-        node = row['Node']
-        group = int(row['Group'])
-        node_labels[node - 1][group - 1] = 1
-
-    # plot histogram of the number of groups joined by each node
-    group_joined_count = np.sum(node_labels, axis=1)
-    plt.hist(group_joined_count)
-    # plt.show()
-
-    # Add labels as an attribute called 'groups' to each node, stored in the graph
-    groups = {i + 1: node_labels[i] for i in range(node_count)}
-
-    # Set the 'groups' attribute for all nodes
-    nx.set_node_attributes(G, values=groups, name='groups')
+    # Load the data into graph
+    G, node_count, label_count, node_labels = load_data_into_graph('BlogCatalog')
 
     """
     Split the nodes into 5-Fold for Cross-validation
@@ -75,19 +41,19 @@ def main():
         """
         Classification of the test nodes
         """
-        prediction = {i: np.zeros(group_count) for i in test_nodes}
+        prediction = {i: np.zeros(label_count) for i in test_nodes}
         for node in test_nodes:
             k = k_labels[node]
-            prediction[node] = max_vote(G, node, group_count, k)
+            prediction[node] = max_vote(G, node, label_count, k)
 
-        print("classification done")
+        print(f"classification of test fold {fold_idx} done")
 
         """
         Evaluation
         """
         # Transform label of test data and prediction result to be arrays of shape (len(test_nodes),39)
-        label_test = np.zeros((len(test_nodes), group_count))
-        label_pred = np.zeros((len(test_nodes), group_count))
+        label_test = np.zeros((len(test_nodes), label_count))
+        label_pred = np.zeros((len(test_nodes), label_count))
         for i, node in enumerate(test_nodes):
             label_test[i] = G_test.nodes[node]['groups']
             label_pred[i] = prediction[node]
