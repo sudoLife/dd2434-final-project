@@ -59,7 +59,7 @@ class DeepWalk:
 
     def random_walk(self, vertex: int) -> list:
         walk = [str(vertex)]
-        for _ in range(self.walk_length):
+        for _ in range(self.walk_length - 1):
             neighbors = list(self.G.neighbors(vertex))
             if len(neighbors) == 0:
                 break
