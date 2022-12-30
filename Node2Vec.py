@@ -49,12 +49,11 @@ class Node2Vec:
         return probs
 
     def node2vec_walk(self, start_node):
-        walk = [start_node]
         # generate a list of neighbors
         neighbors = list(self.graph.neighbors(start_node))
         # we start with start_node, uniform-randomly choose one neighbour to continue (the 2nd step of the walk)
         second_node = self.rng.choice(neighbors)
-        walk.append(second_node)
+        walk = [str(start_node), str(second_node)]
         # after we have the first 2 steps of walk we can start the iteration
 
         for i in range(1, self.length - 1):
@@ -63,7 +62,7 @@ class Node2Vec:
             probs = self.transition_prob(v, t)
             neighbors = list(self.graph.neighbors(v))
             next_node = self.rng.choice(neighbors, p=probs)
-            walk.append(next_node)
+            walk.append(str(next_node))
         return walk
 
     def walk_worker(self):
