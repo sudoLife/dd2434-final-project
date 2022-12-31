@@ -57,8 +57,8 @@ class Node2Vec:
         # after we have the first 2 steps of walk we can start the iteration
 
         for i in range(1, self.length - 1):
-            t = walk[i - 1]
-            v = walk[i]
+            t = int(walk[i - 1])
+            v = int(walk[i])
             probs = self.transition_prob(v, t)
             neighbors = list(self.graph.neighbors(v))
             next_node = self.rng.choice(neighbors, p=probs)
