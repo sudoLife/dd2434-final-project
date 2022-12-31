@@ -46,7 +46,7 @@ def main():
             k = k_labels[node]
             prediction[node] = max_vote(G, node, label_count, k)
 
-        print(f"classification of test fold {fold_idx} done")
+        print("classification done")
 
         """
         Evaluation

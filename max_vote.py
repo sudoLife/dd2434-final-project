@@ -18,7 +18,8 @@ def max_vote(G, node, label_count, k):
     L += noise
 
     # Get the indices of the top k largest values in L
-    indices = np.argpartition(L, k)[-k:]
+    sorted_arg = np.argsort(L)
+    indices = sorted_arg[-k:]
     prediction[indices] = 1
 
     return prediction
