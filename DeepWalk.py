@@ -34,15 +34,6 @@ class DeepWalk:
         # ensuring the seed is local and the same everywhere
         self.rng = np.random.default_rng(seed)
 
-    def deep_walk(self) -> list:
-        local_corpus = []
-        for vertex in self.G.nodes():
-            # generate a random walk starting at this node
-            walk = self.random_walk(vertex)
-            local_corpus.append(walk)
-        print("Walk finished")
-        return local_corpus
-
     def generate_corpus(self) -> list:
         corpus = []
         print("Generating corpus...")
@@ -54,8 +45,19 @@ class DeepWalk:
             for f in concurrent.futures.as_completed(pool):
                 corpus += f.result()
         print("Generated.")
-        self.rng.shuffle(corpus)
         return corpus
+
+    def deep_walk(self) -> list:
+        local_corpus = []
+        nodes = list(self.G.nodes())
+        self.rng.shuffle(nodes)
+
+        for node in nodes:
+            # generate a random walk starting at this node
+            walk = self.random_walk(node)
+            local_corpus.append(walk)
+        print("Walk finished")
+        return local_corpus
 
     def random_walk(self, vertex: int) -> list:
         walk = [str(vertex)]
@@ -80,7 +82,7 @@ class DeepWalk:
             vector_size=self.embedding_size,
             sg=1,  # skipgram
             hs=1,  # hierarchical softmax
-            min_count=0,
+            min_count=1,
             workers=workers,  # for parallel execution
             window=self.window,
             epochs=epochs,
