@@ -14,18 +14,13 @@ def main():
     deepwalk = DeepWalk(G, window=8, embedding_size=embedding,
                         walks_per_vertex=80, walk_length=20)
     corpus = deepwalk.generate_corpus()
-    model = deepwalk.train(corpus, workers=1, epochs=1)
-
-    embedded = np.zeros((len(G), embedding))
-
-    for node in G.nodes():
-        embedded[node] = model.wv[str(node)]
+    embedded = deepwalk.train(corpus, workers=1, epochs=1)
 
     reduced_embedding = PCA(n_components=2).fit_transform(embedded)
 
     colors = color_communities(G)
 
-    ax1 = plt.subplot(1, 2, 1)
+    plt.subplot(1, 2, 1)
     pos = nx.spring_layout(G, seed=14)
     nx.draw(G, pos, with_labels=True, node_color=colors)
 

@@ -4,6 +4,7 @@ import numpy as np
 import concurrent.futures
 from gensim.models.callbacks import CallbackAny2Vec
 from multiprocessing import cpu_count
+from utils import kv_to_ndarray
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -47,7 +48,7 @@ class DeepWalk:
         print("Generated.")
         return corpus
 
-    def deep_walk(self) -> list:
+    def deep_walk(self) -> list[list[str]]:
         local_corpus = []
         nodes = list(self.G.nodes())
         self.rng.shuffle(nodes)
@@ -59,7 +60,7 @@ class DeepWalk:
         print("Walk finished")
         return local_corpus
 
-    def random_walk(self, vertex: int) -> list:
+    def random_walk(self, vertex: int) -> list[str]:
         walk = [str(vertex)]
         for _ in range(self.walk_length - 1):
             neighbors = list(self.G.neighbors(vertex))
@@ -89,4 +90,4 @@ class DeepWalk:
             callbacks=[callback]
         )
 
-        return model
+        return kv_to_ndarray(self.G, model.wv)

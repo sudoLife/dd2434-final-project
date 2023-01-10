@@ -3,6 +3,7 @@ from gensim.models import Word2Vec
 from gensim.models.callbacks import CallbackAny2Vec
 import concurrent.futures
 from multiprocessing import cpu_count
+from utils import kv_to_ndarray
 
 
 class SkipGramCallback(CallbackAny2Vec):
@@ -39,10 +40,10 @@ class Node2Vec:
         probs = np.zeros(len(v_neighbors))
         for i, x in enumerate(v_neighbors):
             prob = self.graph[v][x].get(
-                'weight', 1) / (self.p if t == x else self.q)
+                'weight', 1)  # / (self.p if t == x else self.q)
             if t == x:
                 prob *= (1 / self.p)
-            else:
+            elif x not in self.graph.neighbors(t):
                 prob *= (1 / self.q)
             probs[i] = prob
         probs /= np.sum(probs)
@@ -94,4 +95,5 @@ class Node2Vec:
         callback = SkipGramCallback()
         model = Word2Vec(corpus, window=self.context_size, vector_size=self.dimensions, workers=workers,
                          epochs=epochs, callbacks=[callback], sg=0, negative=5)
-        return model.wv
+
+        return kv_to_ndarray(self.graph, model.wv)
