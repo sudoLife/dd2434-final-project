@@ -12,8 +12,11 @@ def kv_to_ndarray(G: nx.Graph, embedding: KeyedVectors):
     ndarray = np.zeros(
         (len(nodes), embedding[0].shape[0]), dtype=type(embedding[0][0]))
 
+    # so that this doesn't depend on the node name damnit
+    i = 0
     for node in nodes:
-        ndarray[node] = embedding[str(node)]
+        ndarray[i] = embedding[str(node)]
+        i += 1
 
     return ndarray
 
