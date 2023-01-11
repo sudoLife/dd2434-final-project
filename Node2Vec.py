@@ -14,7 +14,8 @@ class SkipGramCallback(CallbackAny2Vec):
         print(f'Epoch #{self.epoch} start')
 
     def on_epoch_end(self, model):
-        print(f'Epoch #{self.epoch} end')
+        loss = model.get_latest_training_loss()
+        print(f'Epoch #{self.epoch} end, loss = {loss}')
         self.epoch += 1
 
     def on_train_begin(self, model):
@@ -94,6 +95,6 @@ class Node2Vec:
             corpus = self.generate_corpus()
         callback = SkipGramCallback()
         model = Word2Vec(corpus, window=self.context_size, vector_size=self.dimensions, workers=workers,
-                         epochs=epochs, callbacks=[callback], sg=0, negative=5)
+                         epochs=epochs, callbacks=[callback], sg=0, negative=5, compute_loss=True)
 
         return kv_to_ndarray(self.graph, model.wv)

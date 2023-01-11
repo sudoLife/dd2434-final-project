@@ -15,7 +15,8 @@ class SkipGramCallback(CallbackAny2Vec):
         print(f'Epoch #{self.epoch} start')
 
     def on_epoch_end(self, model):
-        print(f'Epoch #{self.epoch} end')
+        loss = model.get_latest_training_loss()
+        print(f'Epoch #{self.epoch} end, loss = {loss}')
         self.epoch += 1
 
     def on_train_begin(self, model):
@@ -35,7 +36,7 @@ class DeepWalk:
         # ensuring the seed is local and the same everywhere
         self.rng = np.random.default_rng(seed)
 
-    def generate_corpus(self) -> list:
+    def generate_corpus(self):
         corpus = []
         print("Generating corpus...")
 
@@ -48,7 +49,7 @@ class DeepWalk:
         print("Generated.")
         return corpus
 
-    def deep_walk(self) -> list[list[str]]:
+    def deep_walk(self):
         local_corpus = []
         nodes = list(self.G.nodes())
         self.rng.shuffle(nodes)
@@ -60,7 +61,7 @@ class DeepWalk:
         print("Walk finished")
         return local_corpus
 
-    def random_walk(self, vertex: int) -> list[str]:
+    def random_walk(self, vertex: int):
         walk = [str(vertex)]
         for _ in range(self.walk_length - 1):
             neighbors = list(self.G.neighbors(vertex))
@@ -87,7 +88,8 @@ class DeepWalk:
             workers=workers,  # for parallel execution
             window=self.window,
             epochs=epochs,
-            callbacks=[callback]
+            callbacks=[callback],
+            compute_loss=True
         )
 
         return kv_to_ndarray(self.G, model.wv)
