@@ -55,11 +55,14 @@ class GraphSplit():
 
         # Take largest connected subgraph
         if enforce_connectivity and not nx.is_connected(G):
-            G = max(nx.connected_component_subgraphs(G), key=len)
+            G = max((G.subgraph(c)
+                    for c in nx.connected_components(G)), key=len)
             print("Input graph not connected: using largest connected subgraph")
 
-        print("Read graph, nodes: %d, edges: %d" % (G.number_of_nodes(), G.number_of_edges()))
-        self.G = G
+        print("Read graph, nodes: %d, edges: %d" %
+              (G.number_of_nodes(), G.number_of_edges()))
+        self.G = G.copy()
+        self.G_train = G.copy()
 
     def get_train_test_edge_split(self):
         """
@@ -109,10 +112,12 @@ class GraphSplit():
 
         # non_edges() already takes direction into account
         non_edges = [e for e in nx.non_edges(self.G_train)]
-        print("Finding %d of %d non-edges" % (n_test_neg_edges, len(non_edges)))
+        print("Finding %d of %d non-edges" %
+              (n_test_neg_edges, len(non_edges)))
 
         # Select m pairs of non-edges to be the negative samples for test set
-        rnd_inx = self._rnd.choice(len(non_edges), n_test_neg_edges, replace=False)
+        rnd_inx = self._rnd.choice(
+            len(non_edges), n_test_neg_edges, replace=False)
         test_neg_edge = [non_edges[ii] for ii in rnd_inx]
 
         n_prn = len(self.prop_reversed_neg)
@@ -171,30 +176,36 @@ def get_edge_labels(pos_edge_list, neg_edge_list):
 def main():
     # NOTE: Load the graph here, make sure to relabel so that the index start from 1 and is ordered
 
-    # Just as an example
-    file_path = f'datasets/Emails-dataset'
-    df = pd.read_csv(f'{file_path}/email-Eu-core.txt', header=None, names=['src', 'dst'], sep=' ')
+    df = pd.read_csv('datasets/CA-GrQc.txt',
+                     header=None, names=['src', 'dst'], sep='\t')
 
-    G = nx.from_pandas_edgelist(df, source='src', target='dst', create_using=nx.Graph())
+    G = nx.from_pandas_edgelist(
+        df, source='src', target='dst', create_using=nx.Graph)
+    # G, _, _, _ = load_data_into_graph('Emails')
 
     # NOTE: Remember to change the graph name when change dataset
-    graph_name = 'Emails'
+    graph_name = 'Cacao2'
 
     print("Done loading the graph")
 
     # Get train and test edges split of the graph
-    g_split = GraphSplit(G, is_directed=True, is_weighted=False)
+    g_split = GraphSplit(G, is_directed=False, is_weighted=False)
+    g_split.graph_preprocess()
     train_pos_edge, train_neg_edge, test_pos_edge, test_neg_edge = g_split.get_train_test_edge_split()
 
     # Save train_graph
     g_split.save_train_graph(graph_name)
 
     for i, prop in enumerate(default_params['prop_reversed_neg']):
-        edges_train, labels_train = get_edge_labels(train_pos_edge, train_neg_edge[i])
-        edges_test, labels_test = get_edge_labels(test_pos_edge, test_neg_edge[i])
+        edges_train, labels_train = get_edge_labels(
+            train_pos_edge, train_neg_edge[i])
+        edges_test, labels_test = get_edge_labels(
+            test_pos_edge, test_neg_edge[i])
 
-        train_and_test_data = [edges_train, labels_train, edges_test, labels_test]
-        edges_split_fn = "%s%s_edges_split_%s.pkl" % ("LP_data/", graph_name, prop)
+        train_and_test_data = [edges_train,
+                               labels_train, edges_test, labels_test]
+        edges_split_fn = "%s%s_edges_split_%s.pkl" % (
+            "LP_data/", graph_name, prop)
         with open(edges_split_fn, 'wb') as fp:
             pickle.dump(train_and_test_data, fp)
             print('Done writing train and test data into file')
