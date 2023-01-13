@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 from gensim.models import KeyedVectors
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.multiclass import OneVsRestClassifier
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
@@ -26,32 +27,61 @@ def load_data_into_graph(dataset_name):
     """
     This is the data loading function for BlogCatalog, Flickr, YouTube dataset
     """
-    file_path = f'datasets/{dataset_name}-dataset/data'
+    if dataset_name == 'Emails':
+        df = pd.read_csv('datasets/Emails/email-Eu-core.txt',
+                    header=None, names=['src', 'dst'], sep=' ')
+        G = nx.from_pandas_edgelist(df, source='src', target='dst')
 
-    # Load the edges file into a pandas DataFrame
-    df = pd.read_csv(f'{file_path}/edges.csv',
-                     header=None, names=['src', 'dst'])
+        # Read the groups of each node
+        group_edges = pd.read_csv(f'datasets/Emails/email-Eu-core-department-labels.txt', 
+                                        sep=' ', header=None)
+        print(np.array(group_edges)[0])
 
-    # Create a graph from the DataFrame
-    G = nx.from_pandas_edgelist(
-        df, source='src', target='dst', create_using=nx.Graph())
-    node_count = G.number_of_nodes()
+        # All labels
+        labels = np.unique(np.array(group_edges)[:,1])
 
-    # Read the groups of each node
-    group_edges = pd.read_csv(
-        f'{file_path}/group-edges.csv', sep=',', names=['Node', 'Group'])
+        node_count = G.number_of_nodes()
+        label_count = len(labels)
 
-    # All labels
-    labels = pd.read_csv(f'{file_path}/groups.csv',
-                         header=None, names=['Group'])
-    label_count = len(labels)
+        #print(group_edges.shape)
+        node_labels = np.array(group_edges)[:,1]
+        
+        # # Vectorize labels as array of shape (node_count , label_count)
+        # node_labels = np.zeros((G.number_of_nodes(), label_count), dtype=int)
+        # for index, row in group_edges.iterrows():
+        #     #print("row shape: " + str(row[1]))
+        #     node = int(row[0])
+        #     group = int(row[1])
+        #     node_labels[node - 1][group - 1] = 1
 
-    # Vectorize labels as array of shape (node_count , label_count)
-    node_labels = np.zeros((G.number_of_nodes(), label_count), dtype=int)
-    for index, row in group_edges.iterrows():
-        node = row['Node']
-        group = int(row['Group'])
-        node_labels[node - 1][group - 1] = 1
+    else:
+        file_path = f'datasets/{dataset_name}-dataset/data'
+
+        # Load the edges file into a pandas DataFrame
+        df = pd.read_csv(f'{file_path}/edges.csv',
+                        header=None, names=['src', 'dst'])
+
+        # Create a graph from the DataFrame
+        G = nx.from_pandas_edgelist(
+            df, source='src', target='dst', create_using=nx.Graph())
+
+        # Read the groups of each node
+        group_edges = pd.read_csv(
+            f'{file_path}/group-edges.csv', sep=',', names=['Node', 'Group'])
+
+        # All labels
+        labels = pd.read_csv(f'{file_path}/groups.csv',
+                            header=None, names=['Group'])
+
+        node_count = G.number_of_nodes()
+        label_count = len(labels)
+
+        # Vectorize labels as array of shape (node_count , label_count)
+        node_labels = np.zeros((G.number_of_nodes(), label_count), dtype=int)
+        for index, row in group_edges.iterrows():
+            node = row['Node']
+            group = int(row['Group'])
+            node_labels[node - 1][group - 1] = 1
 
     # plot histogram of the number of groups joined by each node
     # group_joined_count = np.sum(node_labels, axis=1)
@@ -59,7 +89,7 @@ def load_data_into_graph(dataset_name):
     # plt.show()
 
     # Add labels as an attribute called 'groups' to each node, stored in the graph
-    groups = {i + 1: node_labels[i] for i in range(node_count)}
+    groups = {i: node_labels[i] for i in range(node_count)}
 
     # Set the 'groups' attribute for all nodes
     nx.set_node_attributes(G, values=groups, name='groups')
@@ -67,55 +97,55 @@ def load_data_into_graph(dataset_name):
     return G, node_count, label_count, node_labels
 
 
-def node_classification(G, X, y, multiple_labels=False):
-    # Create the classifier
-    # clf_list = {i: LogisticRegression(class_weight={0: 1, 1: 5}) for i in range(39)}
-    base_clf = LogisticRegression(class_weight={0: 1, 1: 8})
-    # base_clf = SVC(kernel="linear", C=0.025)
-    clf = OneVsRestClassifier(base_clf)
+def node_classification(G, X, y, dataset, embedding_vectors_file, multiple_labels=False):
+    G, node_count, label_count, node_labels = load_data_into_graph(dataset)
 
-    cv = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    # Load the embedding vectors
+    input_model_file = 'Line/' + embedding_vectors_file
+    X = np.load(input_model_file)
+    y = node_labels  # target labels (possibly in a multi-label format)
+
+    # Create the classifier
+    base_clf = LogisticRegression(class_weight={0: 1, 1: 8})  # for single label
+    clf = OneVsRestClassifier(base_clf)  # for multi label
+    
+    if multiple_labels:
+        cv = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    else:
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
     for epoch, (train_index, test_index) in enumerate(cv.split(X, y)):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         clf = clf.fit(X_train, y_train)
 
-        if multiple_labels:
-            y_pred_prob = clf.predict_proba(X_test)
+    if multiple_labels:
+        y_pred_prob = clf.predict_proba(X_test)
 
-            # """
-            # Assign weights to different group's probabilities to solve the imbalance
-            # """
-            # # Calculate weight of each label
-            # node_count_in_each_label = np.sum(y_train, axis=0)
-            # label_weight = node_count_in_each_label / np.sum(node_count_in_each_label)
-            #
-            # # Normalize y_pred_prob
-            # y_pred_prob = y_pred_prob * label_weight / np.sum(y_pred_prob, axis=0)
+        # Originally the node index starts from 1, so X[i-1] represents the embedding vector of node i
+        # record the number of labels each node in the test set has
+        k_labels = []
+        for label_vec in y_test:
+            num_of_labels = np.sum(label_vec)
+            k_labels.append(num_of_labels)
 
-            """
-                Use pred_probability to select top k labels for each node
-            """
-            # Originally the node index starts from 1, so X[i-1] represents the embedding vector of node i
-            # record the number of labels each node in the test set has
-            k_labels = {i + 1: np.sum(G.nodes[i + 1]['groups'])
-                        for i in test_index}
+        # L is y_pred_prob[j], where test_index[j] =  real_node_index - 1 = i
+        # Get the indices of the top k largest values in L
+        y_pred = np.zeros((len(test_index), label_count))
 
-            # L is y_pred_prob[j], where test_index[j] =  real_node_index - 1 = i
-            # Get the indices of the top k largest values in L
-            y_pred = np.zeros((len(test_index), y.shape[1]))
-            for j, i in enumerate(test_index):
-                node_idx = i + 1
-                k = k_labels[node_idx]
-                L = y_pred_prob[j]
-                sorted_arg = np.argsort(L)
-                indices = sorted_arg[-k:]
-                y_pred[j][indices] = 1
-        else:
-            y_pred = clf.predict(X_test)
+        for i, idx in enumerate(test_index):
+            L = y_pred_prob[i]  
+            k = k_labels[i]
+            sorted_arg = np.argsort(L)
+            indices = sorted_arg[-k:]
+            y_pred[i][indices] = 1
 
-        print("epoch ", epoch)
-        print("f1-macro:    ", f1_score(y_test, y_pred, average='macro'))
-        print("f1_micro:    ", f1_score(y_test, y_pred, average='micro'))
-        print("accuracy:    ", accuracy_score(
-            y_test, y_pred, normalize=True))
+    else:  # single label
+        y_pred = clf.predict(X_test)
+
+    # Stats
+    print("epoch ", epoch)
+    print("f1-macro:    ", f1_score(y_test, y_pred, average='macro'))
+    print("f1_micro:    ", f1_score(y_test, y_pred, average='micro'))
+    print("accuracy:    ", accuracy_score(
+        y_test, y_pred, normalize=True))
