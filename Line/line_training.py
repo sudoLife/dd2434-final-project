@@ -4,11 +4,10 @@ import line1
 import pandas as pd
 import numpy as np
 import argparse
-from utils_line import DBLPDataLoader
+from utils_line import GraphProcessor
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import pickle
-#from color_communities import color_communities
+from color_communities import color_communities
 
 tf.compat.v1.disable_v2_behavior()
 
@@ -16,50 +15,39 @@ def main():
     # Change dataset name here, run the script,
     # final embeddings will be saved to "embedding_vectors" folder
     # as .npy file
-    dataset = 'CollegeMsg'
+    dataset = 'Flickr'
 
-    if dataset == 'Emails':
-        df = pd.read_csv('datasets/Emails/email-Eu-core.txt',
-                    header=None, names=['src', 'dst'], sep=' ')
-        G = nx.from_pandas_edgelist(df, source='src', target='dst')
-    elif dataset == 'CollegeMsg':
-        train_graph_fn = "%s%s_graph.pkl" % ("datasets/", dataset)
-        with open(train_graph_fn, 'rb') as fp:
-            G = pickle.load(fp)
-    else:
-        # Load the CSV file into a pandas DataFrame
-        df = pd.read_csv('datasets/' + dataset + '-dataset/data/edges.csv',
-                        header=None, names=['src', 'dst'])
+    # Load the CSV file into a pandas DataFrame
+    df = pd.read_csv('datasets/' + dataset + '-dataset/data/edges.csv',
+                     header=None, names=['src', 'dst'])
 
-        # Create a graph from the DataFrame
-        # 10312 nodes, 333983 edges
-        G = nx.from_pandas_edgelist(
-            df, source='src', target='dst', create_using=nx.Graph)
-
+    # Create a graph from the DataFrame
+    G = nx.from_pandas_edgelist(
+        df, source='src', target='dst', create_using=nx.Graph)
 
     final_embeddings = train(G, 128, isWeighted=False)    
     
-    with open('Line/Line_' + dataset + '.npy', 'wb') as f:
+    with open('Line/embedding_vectors/Line_' + dataset + '.npy', 'wb') as f:
         np.save(f, np.array(final_embeddings))
 
 
 def train(graph, embedding_size, isWeighted):
     #G = DBLPDataLoader()
     #data_loader = DBLPDataLoader(graph_file=args.graph_file)
-    data_loader = DBLPDataLoader(graph, isWeighted)
+    graph_processor = GraphProcessor(graph, isWeighted)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_loader', default=data_loader)
+    parser.add_argument('--graph_processor', default=graph_processor)
     parser.add_argument('--embedding_dim', default=embedding_size)
     parser.add_argument('--batch_size', default=100)
     parser.add_argument('--K', default=5)
-    parser.add_argument('--proximity', default='second-order', help='first-order or second-order')
+    parser.add_argument('--proximity', default='first-order', help='first-order or second-order')
     parser.add_argument('--learning_rate', default=0.025)
     parser.add_argument('--mode', default='train')
-    parser.add_argument('--num_batches', default=10000)
+    parser.add_argument('--num_batches', default=200)
     parser.add_argument('--total_graph', default=True)
     args = parser.parse_args()
     final_embedding = line1.train(args)
-    #karate_line(args, final_embedding)
+    
     return final_embedding
 
 
