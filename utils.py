@@ -5,6 +5,7 @@ from gensim.models import KeyedVectors
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.multiclass import OneVsRestClassifier
+from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 
 def kv_to_ndarray(G: nx.Graph, embedding: KeyedVectors):
