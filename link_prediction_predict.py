@@ -38,7 +38,7 @@ def get_embeddings_of_train_graph(embedding_file_path):
     return embeddings
 
 
-def edges_to_features(edge_list, embeddings, edge_function, dimensions):
+def edges_to_features(edge_list, nodes_list, embeddings, edge_function, dimensions):
     """
     Use embedding vectors to calculate a (similarity) score for each pair (ordered)
     of nodes in the test set edge_list. This will be the input to the classifier.
@@ -51,8 +51,8 @@ def edges_to_features(edge_list, embeddings, edge_function, dimensions):
         v1, v2 = edge_list[ii]
 
         # Edge-node features
-        emb1 = embeddings[v1]
-        emb2 = embeddings[v2]
+        emb1 = embeddings[nodes_list.index(v1)]
+        emb2 = embeddings[nodes_list.index(v2)]
 
         # Calculate edge feature
         feature_vec[ii] = edge_function(emb1, emb2)
@@ -60,7 +60,7 @@ def edges_to_features(edge_list, embeddings, edge_function, dimensions):
     return feature_vec
 
 
-def link_prediction(edges_train, labels_train, edges_test, labels_test, emb, graph_name, emb_method):
+def link_prediction(edges_train, labels_train, edges_test, labels_test, emb, nodes_list, graph_name, emb_method):
     dimensions = emb.shape[1]
     auc_score = {name: [] for name in edge_functions}
 
@@ -68,8 +68,8 @@ def link_prediction(edges_train, labels_train, edges_test, labels_test, emb, gra
 
     for edge_fn_name, edge_fn in edge_functions.items():
         # Calculate edge embeddings using binary function
-        edge_features_train = edges_to_features(edges_train, emb, edge_fn, dimensions)
-        edge_features_test = edges_to_features(edges_test, emb, edge_fn, dimensions)
+        edge_features_train = edges_to_features(edges_train, nodes_list, emb, edge_fn, dimensions)
+        edge_features_test = edges_to_features(edges_test, nodes_list, emb, edge_fn, dimensions)
 
         # Linear classifier
         scalar = StandardScaler()
@@ -95,7 +95,7 @@ def link_prediction(edges_train, labels_train, edges_test, labels_test, emb, gra
 
 def main():
     # NOTE: Don't forget to change the graph name here everytime you use a new dataset
-    graph_name = 'Emails'
+    graph_name = 'CollegeMsg'
 
     # Remember to change the embedding_method name
     embedding_method = "DeepWalk"
@@ -105,13 +105,17 @@ def main():
     with open(train_graph_fn, 'rb') as fp:
         G_train = pickle.load(fp)
 
-    deepwalk = DeepWalk(G_train, window=8, embedding_size=10,
-                        walks_per_vertex=80, walk_length=20)
-    corpus = deepwalk.generate_corpus()
-    embedding_array = deepwalk.train(corpus, workers=1, epochs=1)
+    nodes_list = list(G_train.nodes())
+
+    print("Done loading G_train and nodes_list")
+    #
+    # deepwalk = DeepWalk(G_train, window=10, embedding_size=128,
+    #                     walks_per_vertex=80, walk_length=40)
+    # corpus = deepwalk.generate_corpus()
+    # embedding_array = deepwalk.train(corpus, workers=1, epochs=1)
     embedding_fn = "embedding_result/LP_%s_%s.npy" % (embedding_method, graph_name)
-    np.save(embedding_fn, embedding_array)
-    print("Done with saving the embedding result of training graph")
+    # np.save(embedding_fn, embedding_array)
+    # print("Done with saving the embedding result of training graph")
 
     # TODO: load different embeddings results here
     embedding_file_path = embedding_fn
@@ -126,8 +130,8 @@ def main():
 
         edges_train, labels_train, edges_test, labels_test = train_and_test_data
 
-        link_prediction(edges_train, labels_train, edges_test, labels_test, emb, graph_name, embedding_method)
-
+        link_prediction(edges_train, labels_train, edges_test, labels_test, emb, nodes_list, graph_name,
+                        embedding_method)
 
 if __name__ == "__main__":
     main()
