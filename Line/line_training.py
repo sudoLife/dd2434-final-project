@@ -7,9 +7,10 @@ import argparse
 from utils_line import DBLPDataLoader
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-#from color_communities import color_communities
+# from color_communities import color_communities
 
 tf.compat.v1.disable_v2_behavior()
+
 
 def main():
     # Change dataset name here, run the script,
@@ -26,29 +27,30 @@ def main():
     G = nx.from_pandas_edgelist(
         df, source='src', target='dst', create_using=nx.Graph)
 
-    final_embeddings = train(G, 128, isWeighted=False)    
-    
-    with open('Line/embedding_vectors/Line_' + dataset + '.npy', 'wb') as f:
+    final_embeddings = train(G, 128, isWeighted=False)
+
+    with open('Line/Line_' + dataset + '.npy', 'wb') as f:
         np.save(f, np.array(final_embeddings))
 
 
 def train(graph, embedding_size, isWeighted):
-    #G = DBLPDataLoader()
-    #data_loader = DBLPDataLoader(graph_file=args.graph_file)
+    # G = DBLPDataLoader()
+    # data_loader = DBLPDataLoader(graph_file=args.graph_file)
     data_loader = DBLPDataLoader(graph, isWeighted)
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_loader', default=data_loader)
     parser.add_argument('--embedding_dim', default=embedding_size)
     parser.add_argument('--batch_size', default=100)
     parser.add_argument('--K', default=5)
-    parser.add_argument('--proximity', default='first-order', help='first-order or second-order')
+    parser.add_argument('--proximity', default='first-order',
+                        help='first-order or second-order')
     parser.add_argument('--learning_rate', default=0.025)
     parser.add_argument('--mode', default='train')
     parser.add_argument('--num_batches', default=200)
     parser.add_argument('--total_graph', default=True)
     args = parser.parse_args()
     final_embedding = line1.train(args)
-    #karate_line(args, final_embedding)
+    # karate_line(args, final_embedding)
     return final_embedding
 
 
@@ -70,6 +72,7 @@ def karate_line(args, final_embedding):
         ax2.annotate(
             node, (reduced_embedding[node, 0], reduced_embedding[node, 1]))
     plt.show()
+
 
 if __name__ == '__main__':
     main()
