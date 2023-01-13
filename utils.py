@@ -1,6 +1,7 @@
 import pandas as pd
 import networkx as nx
 import numpy as np
+import pickle
 from gensim.models import KeyedVectors
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
@@ -53,7 +54,6 @@ def load_data_into_graph(dataset_name):
         #     node = int(row[0])
         #     group = int(row[1])
         #     node_labels[node - 1][group - 1] = 1
-
     else:
         file_path = f'datasets/{dataset_name}-dataset/data'
 
@@ -101,7 +101,7 @@ def node_classification(G, X, y, dataset, embedding_vectors_file, multiple_label
     G, node_count, label_count, node_labels = load_data_into_graph(dataset)
 
     # Load the embedding vectors
-    input_model_file = 'Line/' + embedding_vectors_file
+    input_model_file = embedding_vectors_file #'Line/' + embedding_vectors_file
     X = np.load(input_model_file)
     y = node_labels  # target labels (possibly in a multi-label format)
 
